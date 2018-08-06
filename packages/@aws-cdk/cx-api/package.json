@@ -25,7 +25,8 @@
     "lint": "cdk-lint",
     "test": "cdk-test",
     "pkglint": "pkglint -f",
-    "package": "cdk-package"
+    "package": "cdk-package",
+    "license": "simple-license-checker"
   },
   "author": {
     "name": "Amazon Web Services",
@@ -35,7 +36,8 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "cdk-build-tools": "^0.8.0",
-    "pkglint": "^0.8.0"
+    "pkglint": "^0.8.0",
+    "simple-license-checker": "^0.8.0"
   },
   "repository": {
     "url": "https://github.com/awslabs/aws-cdk.git",

@@ -29,7 +29,8 @@
     "lint": "cdk-lint",
     "test": "cdk-test",
     "pkglint": "pkglint -f",
-    "package": "cdk-package"
+    "package": "cdk-package",
+    "license": "simple-license-checker"
   },
   "cdk-build": {
     "cloudformation": "AWS::Kinesis"
@@ -50,7 +51,8 @@
     "@aws-cdk/assert": "^0.8.0",
     "cdk-build-tools": "^0.8.0",
     "cfn2ts": "^0.8.0",
-    "pkglint": "^0.8.0"
+    "pkglint": "^0.8.0",
+    "simple-license-checker": "^0.8.0"
   },
   "dependencies": {
     "@aws-cdk/aws-iam": "^0.8.0",

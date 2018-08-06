@@ -29,7 +29,8 @@
     "lint": "cdk-lint",
     "test": "cdk-test",
     "pkglint": "pkglint -f",
-    "package": "cdk-package"
+    "package": "cdk-package",
+    "license": "simple-license-checker"
   },
   "nyc": {
     "lines": 55,
@@ -51,12 +52,13 @@
     "@types/js-base64": "^2.3.1",
     "cdk-build-tools": "^0.8.0",
     "cfn2ts": "^0.8.0",
-    "pkglint": "^0.8.0"
+    "pkglint": "^0.8.0",
+    "simple-license-checker": "^0.8.0"
   },
   "dependencies": {
     "@aws-cdk/cx-api": "^0.8.0",
     "js-base64": "^2.4.5",
-    "json-diff": "^0.3.1"
+    "json-diff": "^0.5.2"
   },
   "bundledDependencies": [
     "json-diff",

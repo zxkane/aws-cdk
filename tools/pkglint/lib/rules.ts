@@ -359,6 +359,18 @@ export class MustHaveIntegCommand extends ValidationRule {
     }
 }
 
+/**
+ * Must use 'simple-license-checker' command
+ */
+export class MustUseLicenseChecker extends ValidationRule {
+    public validate(pkg: PackageJson): void {
+        if (!shouldUseLicenseChecker(pkg)) { return; }
+
+        expectJSON(pkg, 'scripts.license', 'simple-license-checker');
+        expectDevDependency(pkg, 'simple-license-checker', '^' + monoRepoVersion());
+    }
+}
+
 export class PkgLintAsScript extends ValidationRule {
     public validate(pkg: PackageJson): void {
         const script = 'pkglint -f';
@@ -515,4 +527,13 @@ function shouldUseCDKBuildTools(pkg: PackageJson) {
     // The packages that DON'T use CDKBuildTools are the package itself
     // and the packages used by it.
     return pkg.packageName !== 'cdk-build-tools' && pkg.packageName !== 'merkle-build';
+}
+
+/**
+ * Return whether this package should use CDK build tools
+ */
+function shouldUseLicenseChecker(pkg: PackageJson) {
+    // The packages that DON'T use the license checker are the package itself
+    // and the packages used by it.
+    return pkg.packageName !== 'simple-license-checker' && shouldUseCDKBuildTools(pkg);
 }
