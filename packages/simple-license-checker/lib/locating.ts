@@ -25,11 +25,8 @@ export interface PackageInfo {
 
     /**
      * Path of including packages to this package
-     *
-     * Since the same package may be included multiple times along different
-     * paths, this is a list of paths.
      */
-    path: PackageInfo[][];
+    path: PackageInfo[];
 }
 
 export interface LocatePackagesOptions {
@@ -64,7 +61,7 @@ export async function locatePackages(rootDirectory: string): Promise<PackageInfo
             identifier: `${packageJson.name}@${packageJson.version}`,
             directory,
             packageJson,
-            path: [includers]
+            path: includers
         };
         ret.push(info);
 

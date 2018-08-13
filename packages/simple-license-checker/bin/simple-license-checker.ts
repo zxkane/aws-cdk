@@ -1,12 +1,10 @@
 #!/usr/bin/env node
-import fs = require('fs');
 import path = require('path');
 import 'source-map-support/register';
 import util = require('util');
 import yargs = require('yargs');
-import { locatePackages } from '../lib';
-
-const exists = util.promisify(fs.exists);
+import { determineLicense, LicensingInformation, locatePackages } from '../lib';
+import { allOf, noCopyright, notMatching, validate, noLicenseText } from '../lib/checks';
 
 // tslint:disable-next-line:no-var-requires
 const nlv = require('node-license-validator');
@@ -42,18 +40,25 @@ const PERMISSIVE_LICENSES = [
 ];
 
 async function main() {
-    const infos = await locatePackages('.');
-    for (const info of infos) {
-        const fullName = `${info.packageJson.name}@${info.packageJson.version}`;
-        const homepage = info.packageJson.homepage;
-        const license = info.packageJson.license;
-        const lics = info.packageJson.licenses;
-        const hasLICENSE = await exists(path.join(info.directory, 'LICENSE'));
-        const hasCOPYRIGHT = await exists(path.join(info.directory, 'COPYRIGHT'));
-        const hasNOTICE = await exists(path.join(info.directory, 'NOTICE'));
+    const infos = withoutDuplicates(await allLicenses());
 
-        // tslint:disable-next-line:no-console max-line-length
-        console.log(fullName, homepage, license || 'NOLICENSE', lics, hasLICENSE ? '' : 'NOFILE', hasCOPYRIGHT ? 'COPYRIGHT' : '', hasNOTICE ? 'NOTICE' : '');
+    const validated = validate(infos, allOf(
+        noCopyright(),
+        noLicenseText(),
+        notMatching(PERMISSIVE_LICENSES)));
+
+    const withFailures = validated.filter(v => v.failures.length > 0);
+
+    if (withFailures.length === 0) {
+        return;
+    }
+
+    for (const invalid of withFailures) {
+        const included = invalid.license.includePath.length > 0 ? ` (via ${invalid.license.includePath.join(', ')})` : '';
+        process.stdout.write(`${invalid.license.packageIdentifier}${included}\n`);
+        for (const failure of invalid.failures) {
+            process.stdout.write(`- ${failure}\n`);
+        }
     }
 
     const settings = require(path.join(process.cwd(), 'package.json'))["simple-license-checker"] || {};
@@ -74,8 +79,22 @@ async function main() {
     }
 }
 
+async function allLicenses(): Promise<LicensingInformation[]> {
+    const infos = await locatePackages('.');
+    return Promise.all(infos.map(packageInfo => determineLicense(packageInfo)));
+}
+
+function withoutDuplicates(licenses: LicensingInformation[]): LicensingInformation[] {
+    const ret = new Map<string, LicensingInformation>();
+    for (const license of licenses) {
+        const id = license.packageIdentifier + '-' + license.declaredLicenses;
+        ret.set(id, license);
+    }
+    return Array.from(ret.values());
+}
+
 main().catch(err => {
     // tslint:disable-next-line:no-console
-    console.error(err);
+    console.error(err.stack);
     process.exit(1);
 });

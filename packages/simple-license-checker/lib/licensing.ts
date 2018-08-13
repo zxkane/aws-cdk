@@ -11,6 +11,16 @@ const spdxCorrect = require('spdx-correct');
 
 export interface LicensingInformation {
     /**
+     * Name and version of the package
+     */
+    packageIdentifier: string;
+
+    /**
+     * How is this package included
+     */
+    includePath: string[];
+
+    /**
      * The declared license
      */
     declaredLicenses: string[];
@@ -29,6 +39,11 @@ export interface LicensingInformation {
      * Package homepage
      */
     homepage?: string;
+
+    /**
+     * License found in copyright
+     */
+    licenseCopyright?: string;
 
     /**
      * Copyright statement if NOT in licenseText.
@@ -65,8 +80,9 @@ export async function determineLicense(packageInfo: PackageInfo): Promise<Licens
     const licenseText = await loadFileLike(packageInfo.directory, 'LICENSE');
 
     // If we find a copyright notice in the license text we found, we're done.
+    const licenseCopyright = findCopyrightStatement(licenseText);
     let additionalCopyrightStatement: string | undefined;
-    if (!licenseText || findCopyrightStatement(licenseText) === undefined) {
+    if (!licenseCopyright) {
         // If not, try to find in README
         additionalCopyrightStatement = findCopyrightStatement(await loadFileLike(packageInfo.directory, 'README'));
 
@@ -81,10 +97,13 @@ export async function determineLicense(packageInfo: PackageInfo): Promise<Licens
     }
 
     return {
+        packageIdentifier: packageInfo.identifier,
+        includePath: packageInfo.path.map(p => p.identifier),
         declaredLicenses,
         spdxLicense,
         licenseText,
         homepage: packageInfo.packageJson.homepage,
+        licenseCopyright,
         additionalCopyrightStatement
     };
 }
@@ -110,13 +129,13 @@ function findCopyrightStatement(text: string | undefined): string | undefined {
     if (!text) { return undefined; }
 
     // Find the text line containing one of these markers
-    const m = (/Copyright|(c)|©|©️/i).exec(text);
+    const m = (/Copyright|\\(c\\)|©|©️/i).exec(text);
     if (!m) { return undefined; }
 
     let start = m.index;
     let end = m.index;
     while (start > 0 && text[start - 1] !== '\n') { start--; }
-    while (start < text.length && text[start + 1] !== '\n') { end++; }
+    while (end < text.length && text[end] !== '\n') { end++; }
 
     return text.substring(start, end);
 }
