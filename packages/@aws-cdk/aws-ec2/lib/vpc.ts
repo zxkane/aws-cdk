@@ -505,7 +505,7 @@ export class VpcNetwork extends VpcNetworkBase {
 
     let natSubnets: VpcPublicSubnet[];
     if (placement) {
-      const subnets = this.selectSubnets(placement);
+      const subnets = this.selectSubnetObjects(placement);
       for (const sub of subnets) {
         if (this.publicSubnets.indexOf(sub) === -1) {
           throw new Error(`natGatewayPlacement ${placement} contains non public subnet ${sub}`);
@@ -660,7 +660,7 @@ export class VpcSubnet extends cdk.Construct implements IVpcSubnet {
   /**
    * The routeTableId attached to this subnet.
    */
-  public readonly routeTableId: string;
+  public readonly routeTableId?: string;
 
   private readonly internetDependencies = new ConcreteDependable();
 

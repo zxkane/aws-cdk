@@ -1,6 +1,5 @@
 import { Construct, IConstruct, IDependable } from '@aws-cdk/cdk';
 import { DEFAULT_SUBNET_NAME, subnetName } from './util';
-import { VpcSubnet } from './vpc';
 import { InterfaceVpcEndpoint, InterfaceVpcEndpointOptions } from './vpc-endpoint';
 import { VpnConnection, VpnConnectionOptions } from './vpn';
 
@@ -19,6 +18,11 @@ export interface IVpcSubnet extends IConstruct {
    * Dependable that can be depended upon to force internet connectivity established on the VPC
    */
   readonly internetConnectivityEstablished: IDependable;
+
+  /**
+   * Route table ID
+   */
+  readonly routeTableId?: string;
 
   /**
    * Exports this subnet to another stack.
@@ -63,36 +67,12 @@ export interface IVpcNetwork extends IConstruct {
   readonly vpnGatewayId?: string;
 
   /**
-   * Return IDs of the subnets appropriate for the given selection strategy
-   *
-   * Requires that at least once subnet is matched, throws a descriptive
-   * error message otherwise.
-   *
-   * Prefer to use this method over {@link subnets} if you need to pass subnet
-   * IDs to a CloudFormation Resource.
-   */
-  selectSubnetIds(selection?: SubnetSelection): string[];
-
-  /**
-   * Return IDs of the route tables appropriate for the given selection strategy
+   * Return information on the subnets appropriate for the given selection strategy
    *
    * Requires that at least once subnet is matched, throws a descriptive
    * error message otherwise.
    */
-  selectRouteTableIds(selection?: SubnetSelection): string[];
-
-  /**
-   * Return availability zones for the given selection strategy
-   *
-   * Requires that at least once subnet is matched, throws a descriptive
-   * error message otherwise.
-   */
-  selectSubnetAZs(selection?: SubnetSelection): string[];
-
-  /**
-   * Return a dependable object representing internet connectivity for the given subnets
-   */
-  subnetInternetDependencies(selection?: SubnetSelection): IDependable;
+  selectSubnets(selection?: SubnetSelection): SelectedSubnets;
 
   /**
    * Return whether all of the given subnets are from the VPC's public subnets.
@@ -185,6 +165,31 @@ export interface SubnetSelection {
 }
 
 /**
+ * Result of selecting a subset of subnets from a VPC
+ */
+export interface SelectedSubnets {
+  /**
+   * The subnet IDs
+   */
+  readonly subnetIds: string[];
+
+  /**
+   * The respective AZs of each subnet
+   */
+  readonly availabilityZones: string[];
+
+  /**
+   * Route table IDs of each respective subnet
+   */
+  readonly routeTableIds?: string[];
+
+  /**
+   * Dependency representing internet connectivity for these subnets
+   */
+  readonly internetConnectedDependency: IDependable;
+}
+
+/**
  * A new or imported VPC
  */
 export abstract class VpcNetworkBase extends Construct implements IVpcNetwork {
@@ -232,38 +237,18 @@ export abstract class VpcNetworkBase extends Construct implements IVpcNetwork {
   /**
    * Returns IDs of selected subnets
    */
-  public selectSubnetIds(selection: SubnetSelection = {}): string[] {
-    const subnets = this.selectSubnets(selection);
-    return subnets.map(s => s.subnetId);
-  }
+  public selectSubnets(selection: SubnetSelection = {}): SelectedSubnets {
+    const subnets = this.selectSubnetObjects(selection);
 
-  /**
-   * Returns IDs of the route tables associated with the selected subnets
-   */
-  public selectRouteTableIds(selection: SubnetSelection = {}): string[] {
-    const subnets = this.selectSubnets(selection);
-    return (subnets as VpcSubnet[]).map(s => s.routeTableId);
-  }
+    // We may not have this information for imported subnets
+    const routeTableIds = subnets.map(s => s.routeTableId).filter(notUndefined);
 
-  /**
-   * Returns the availability zones for the selected subnets
-   */
-  public selectSubnetAZs(selection: SubnetSelection = {}): string[] {
-    const subnets = this.selectSubnets(selection);
-    return [...new Set(subnets.map(s => s.availabilityZone))];
-  }
-
-  /**
-   * Return a dependable object representing internet connectivity for the given subnets
-   */
-  public subnetInternetDependencies(selection: SubnetSelection = {}): IDependable {
-    selection = reifySelectionDefaults(selection);
-
-    const ret = new CompositeDependable();
-    for (const subnet of this.selectSubnets(selection)) {
-      ret.add(subnet.internetConnectivityEstablished);
-    }
-    return ret;
+    return {
+      subnetIds: subnets.map(s => s.subnetId),
+      availabilityZones: subnets.map(s => s.availabilityZone),
+      routeTableIds: routeTableIds.length > 0 ? routeTableIds : undefined, // Possibly don't have this information
+      internetConnectedDependency: tap(new CompositeDependable(), d => subnets.forEach(s => d.add(s.internetConnectivityEstablished))),
+    };
   }
 
   /**
@@ -309,7 +294,7 @@ export abstract class VpcNetworkBase extends Construct implements IVpcNetwork {
   /**
    * Return the subnets appropriate for the placement strategy
    */
-  protected selectSubnets(selection: SubnetSelection = {}): IVpcSubnet[] {
+  protected selectSubnetObjects(selection: SubnetSelection = {}): IVpcSubnet[] {
     selection = reifySelectionDefaults(selection);
     let subnets: IVpcSubnet[] = [];
 
@@ -459,4 +444,16 @@ class CompositeDependable implements IDependable {
     }
     return ret;
   }
+}
+
+/**
+ * Invoke a function on a value (for its side effect) and return the value
+ */
+function tap<T>(x: T, fn: (x: T) => void): T {
+  fn(x);
+  return x;
+}
+
+function notUndefined<T>(x: T | undefined): x is T {
+  return x !== undefined;
 }
