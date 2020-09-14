@@ -5,7 +5,7 @@ import { BuildSpec } from './build-spec';
 import { runScriptLinuxBuildSpec } from './private/run-script-linux-build-spec';
 import {
   BuildEnvironment, BuildImageBindOptions, BuildImageConfig, ComputeType, IBindableBuildImage, IBuildImage,
-  ImagePullPrincipalType, IProject,
+  ImagePullPrincipalType, IProject, LinuxImageType,
 } from './project';
 
 const mappingName = 'AwsDeepLearningContainersRepositoriesAccounts';
@@ -87,7 +87,7 @@ export class LinuxGpuBuildImage implements IBindableBuildImage {
     return new LinuxGpuBuildImage(repositoryName, tag, account);
   }
 
-  public readonly type = 'LINUX_GPU_CONTAINER';
+  public readonly type = LinuxImageType.GPU.toString();
   public readonly defaultComputeType = ComputeType.LARGE;
   public readonly imageId: string;
   public readonly imagePullPrincipalType?: ImagePullPrincipalType = ImagePullPrincipalType.SERVICE_ROLE;

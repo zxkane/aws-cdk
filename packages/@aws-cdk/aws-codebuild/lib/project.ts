@@ -1218,7 +1218,7 @@ export interface IBindableBuildImage extends IBuildImage {
 }
 
 class ArmBuildImage implements IBuildImage {
-  public readonly type = 'ARM_CONTAINER';
+  public readonly type = LinuxImageType.ARM.toString();
   public readonly defaultComputeType = ComputeType.LARGE;
   public readonly imagePullPrincipalType = ImagePullPrincipalType.CODEBUILD;
   public readonly imageId: string;
@@ -1421,7 +1421,7 @@ export class LinuxBuildImage implements IBuildImage {
     });
   }
 
-  public readonly type = 'LINUX_CONTAINER';
+  public readonly type = LinuxImageType.STANDARD.toString();
   public readonly defaultComputeType = ComputeType.SMALL;
   public readonly imageId: string;
   public readonly imagePullPrincipalType?: ImagePullPrincipalType;
@@ -1457,6 +1457,41 @@ export enum WindowsImageType {
    * The WINDOWS_SERVER_2019_CONTAINER environment type
    */
   SERVER_2019 = 'WINDOWS_SERVER_2019_CONTAINER'
+}
+
+/**
+ * Environment type for Linux Docker images
+ */
+export enum LinuxImageType {
+  /**
+   * The standard environment type, LINUX_CONTAINER
+   */
+  STANDARD = 'LINUX_CONTAINER',
+
+  /**
+   * The LINUX_GPU_CONTAINER environment type
+   */
+  GPU = 'LINUX_GPU_CONTAINER',
+
+  /**
+   * The ARM_CONTAINER environment type
+   */
+  ARM = 'ARM_CONTAINER',
+}
+
+/**
+ * Status for log configuration
+ */
+export enum ProjectLogConfigStatus {
+  /**
+   * The status 'ENABLED'
+   */
+  ENABLED = 'ENABLED',
+
+  /**
+   * The status 'DISABLED'
+   */
+  DISABLED = 'DISABLED',
 }
 
 /**

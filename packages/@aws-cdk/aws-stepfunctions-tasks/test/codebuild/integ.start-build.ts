@@ -15,9 +15,18 @@ import * as tasks from '../../lib';
 class StartBuildStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props: cdk.StackProps = {}) {
     super(scope, id, props);
+    
+    const owner = 'aws';
+    const repo = 'aws-cdk';
+    const source = codebuild.Source.gitHub({
+      owner,
+      repo,
+      branchOrRef: 'master',
+    });
 
     let project = new codebuild.Project(this, 'Project', {
       projectName: 'MyTestProject',
+      source,
       buildSpec: codebuild.BuildSpec.fromObject({
         version: '0.2',
         phases: {
@@ -36,6 +45,11 @@ class StartBuildStack extends cdk.Stack {
       },
     });
 
+    const sourceOverride = codebuild.Source.gitHub({
+      branchOrRef: sfn.JsonPath.stringAt('$.sourceCommit'),
+      owner,
+      repo,
+    })
     let startBuild = new tasks.CodeBuildStartBuild(this, 'build-task', {
       project: project,
       environmentVariablesOverride: {
@@ -43,6 +57,10 @@ class StartBuildStack extends cdk.Stack {
           type: codebuild.BuildEnvironmentVariableType.PLAINTEXT,
           value: sfn.JsonPath.stringAt('$.envVariables.zone'),
         },
+      },
+      sourceOverride,
+      environmentOverride: {
+        computeType: codebuild.ComputeType.X2_LARGE,
       },
     });
 
